@@ -1,3 +1,4 @@
+#  Change by Chong
 def create_period_times(periods_per_day, start_of_period, length_of_period, travel_time,
                         break_after_x_periods, length_of_break,
                         lunch_after_x_periods, length_of_lunch,
@@ -80,4 +81,3 @@ def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_bl
         block_cutoff += periods_per_day
 
     return blocks_of_the_day
-
