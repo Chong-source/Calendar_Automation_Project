@@ -73,6 +73,7 @@ def apply_rotation_days(datetimeindex, rotation_day_names):
 
 
 def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_block_names):
+    """Assign each rotation day a set of blocks equal to the number of periods per day."""
     blocks_of_the_day = {}
     block_cutoff = periods_per_day
     for i in range(len(rotation_day_names)):

@@ -2,13 +2,14 @@ import datetime
 import os.path
 import calendar_building_blocks as cbb
 import calendar_details as cd
+import main_functions as mf
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from event_creator import get_and_print_events, create_event
+from event_creator import get_and_print_events, create_event, create_rotation_day_events, current_calendar_id
 from event_templates import all_day_event
 
 # If modifying these scopes, delete the file token.json.
@@ -41,11 +42,8 @@ def handle_authentication():
 
 
 def main():
-    # creds = handle_authentication()
-    # print("Now that we are authenticated, we can start calling the API:")
-    # The 2 commented lines below make API calls to get event info and create all day events.
-    # get_and_print_events(creds)
-    # create_event(all_day_event, creds)
+    run_program = True
+    creds = handle_authentication()
 
     # Create the names for each individual block that is in the schedule.
     period_block_names = cbb.create_period_block_names(cd.letters_for_period_names,
@@ -63,10 +61,6 @@ def main():
                                             cd.break_after_x_periods, cd.length_of_break,
                                             cd.lunch_after_x_periods, cd.length_of_lunch,
                                             cd.end_of_school_day)
-    print(period_block_names)
-    print(blocks_of_the_day)
-    for periods in time_schedule.items():
-        print(periods)
 
     # Apply rotating day pattern to both semesters, then combine to make a year-long list.
     s1_rotation_days = cbb.apply_rotation_days(cd.semester_1, cd.rotation_day_names)
@@ -76,13 +70,40 @@ def main():
     # Add a column for RotationDays to the school_calendar_info dataframe.
     cd.df['RotationDays'] = school_year_rotation_days
 
+    # Add a new column for each period. Values in the columns will show which sub blocks are in the period for
+    # each specific rotation day.
     for i in range(cd.periods_per_day):
         cd.df[f'Period {i + 1}'] = cd.df['RotationDays']
         for j in range(len(cd.rotation_day_names)):
-            cd.df.loc[cd.df['RotationDays'] == cd.rotation_day_names[j], f'Period {i + 1}'] = blocks_of_the_day[cd.rotation_day_names[j]][i]
+            cd.df.loc[cd.df['RotationDays'] == cd.rotation_day_names[j],
+            f'Period {i + 1}'] = blocks_of_the_day[cd.rotation_day_names[j]][i]
 
-    print(cd.df)
-    print("Bye")
+    while run_program:
+        mf.display_menu(mf.menu_options)
+        user_input = input(">>> ")
+        if user_input.lower() == "a":
+            print(period_block_names)
+        elif user_input.lower() == "b":
+            for day in blocks_of_the_day:
+                print(f"{day} day has blocks: {blocks_of_the_day[day]}")
+        elif user_input.lower() == "c":
+            for periods in time_schedule.items():
+                print(periods)
+        elif user_input.lower() == "d":
+            print(cd.df)
+        elif user_input.lower() == "e":
+            decision = mf.double_check_user_choice(cd.df, current_calendar_id)
+            if decision.lower() == "y":
+                for row in cd.df.itertuples(index=False):
+                    create_rotation_day_events(all_day_event, creds, row[0], row[0], row[1], current_calendar_id)
+            else:
+                print("Cancelling your choice and returning to main menu.")
+        elif user_input.lower() == "x":
+            run_program = False
+        else:
+            print("Invalid input. Please try again.")
+
+    print("Exiting Program")
 
 
 if __name__ == "__main__":
