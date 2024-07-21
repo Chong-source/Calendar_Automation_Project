@@ -3,13 +3,14 @@ import os.path
 import calendar_building_blocks as cbb
 import calendar_details as cd
 import main_functions as mf
+import string
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from event_creator import get_and_print_events, create_event, create_rotation_day_events, current_calendar_id
+from main_functions import get_and_print_events, create_event, create_rotation_day_events, current_calendar_id
 from event_templates import all_day_event
 
 # If modifying these scopes, delete the file token.json.
@@ -79,6 +80,7 @@ def main():
             f'Period {i + 1}'] = blocks_of_the_day[cd.rotation_day_names[j]][i]
 
     while run_program:
+        mf.welcome_message()
         mf.display_menu(mf.menu_options)
         user_input = input(">>> ")
         if user_input.lower() == "a":
@@ -98,6 +100,13 @@ def main():
                     create_rotation_day_events(all_day_event, creds, row[0], row[0], row[1], current_calendar_id)
             else:
                 print("Cancelling your choice and returning to main menu.")
+        elif user_input.lower() == "f":
+            try:
+                number_of_events = int(input("How many events would you like to get? "))
+                events = get_and_print_events(creds, current_calendar_id, number_of_events)
+                mf.work_with_events(creds, events, number_of_events, current_calendar_id)
+            except ValueError:
+                print("Please enter an integer next time.")
         elif user_input.lower() == "x":
             run_program = False
         else:
