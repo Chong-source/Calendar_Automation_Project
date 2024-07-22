@@ -1,7 +1,7 @@
 all_day_event = {
     'summary': 'Calendar API Test',
     'location': 'Chiang Mai',
-    'description': 'Testing out event creation via Calendar API.',
+    'description': '',
     'start': {
         # 'dateTime': '2015-05-28T09:00:00-07:00', --> For events with specific start time.
         'date': '2024-07-10',

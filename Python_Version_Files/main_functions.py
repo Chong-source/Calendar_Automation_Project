@@ -1,11 +1,11 @@
 import datetime
-import string
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from progress.spinner import Spinner
+from school_specific_info import test_ABCD_calendar_id, ABCD_calendar_id
 
-
-current_calendar_id = 'c_523bfb7ac23003cd862371ef6efab433dd50f60f5cd1ed00fbd7d45530eff616@group.calendar.google.com'
+current_calendar_id = ABCD_calendar_id
 
 menu_options = ["(a) View names for each individual block in the schedule.",
                 "(b) View all blocks that are assigned to each rotation day.",
@@ -87,7 +87,7 @@ def get_and_print_events(creds, calendar_id, number_of_events=10):
         print(f"An error occurred: {error}")
 
 
-def work_with_events(creds, all_events, number_of_events, calendar_id):
+def work_with_events(creds, calendar_id, number_of_events, events_to_work_with):
     still_working_with_events = True
 
     while still_working_with_events:
@@ -99,36 +99,11 @@ def work_with_events(creds, all_events, number_of_events, calendar_id):
             still_working_with_events = False
             print("Returning to main menu.")
         elif user_input.lower() == "b":
-            selecting_events_to_delete = True
-
-            while selecting_events_to_delete:
-                print("Each listed event is associated with a number in parenthesis.")
-                print("Enter the number for each event you would like to delete, separated by commas (don't use spaces).")
-                print("Alternatively, enter a range of events to delete, separated by \"-\" (i.e. 7-22).")
-                print("The example range would delete events 7 through 22, leaving events 1-6 and 23-n on the calendar.")
-                events_to_delete = input(">>> ")
-                if "-" in events_to_delete:
-                    events_to_delete = events_to_delete.split("-")
-                    try:
-                        events_to_delete = [int(num[0:]) for num in events_to_delete]
-                        print(events_to_delete)
-                        selecting_events_to_delete = False
-                    except ValueError:
-                        print("Please enter a valid range of events to delete.")
-                else:
-                    events_to_delete = events_to_delete.split(",")
-                    try:
-                        events_to_delete = [int(num[0:]) for num in events_to_delete]
-                        print(events_to_delete)
-                        print(all_events[events_to_delete[0]]["id"])
-                        selecting_events_to_delete = False
-                    except ValueError:
-                        print("Please enter a valid list of events to delete.")
-
-            for event_number in events_to_delete:
-                print(f"    Deleting event with id number: {all_events[event_number]['id']} | Name: {all_events[event_number]['summary']}")
-
-
+            delete_events(creds, calendar_id, events_to_work_with)
+            still_working_with_events = False
+        elif user_input.lower() == "c":
+            delete_events_in_bulk(creds, calendar_id, events_to_work_with)
+            still_working_with_events = False
 
 
 def create_event(event, creds):
@@ -150,35 +125,66 @@ def create_rotation_day_events(event, creds, start_date, end_date, summary, cale
     print('Event created: %s' % (event.get('htmlLink')))
 
 
-def delete_events(creds, calendar_id):
-    try:
-        service = build("calendar", "v3", credentials=creds)
+def delete_events(creds, calendar_id, events_to_work_with):
+    # try:
+    selecting_events_to_delete = True
 
-        # Call the Calendar API
-        now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-        # print("Getting the upcoming 10 events")
-        events_result = (service.events().list(
-            calendarId=calendar_id,
-            timeMin=now,
-            maxResults=5,
-            singleEvents=True,
-            orderBy="startTime",
-        )
-                         .execute()
-                         )
-        events = events_result.get("items", [])
+    while selecting_events_to_delete:
+        print("Each listed event is associated with a number in parenthesis.")
+        print("Enter the number for each event you would like to delete, separated by commas (don't use spaces).")
+        print("Alternatively, enter a range of events to delete, separated by \"-\" (i.e. 7-22).")
+        print("The example range would delete events 7 through 22, leaving events 1-6 and 23-n on the calendar.")
+        selected_events = input(">>> ")
+        if "-" in selected_events:
+            slice_values = selected_events.split("-")
+            try:
+                slice_values = [int(num[0:]) for num in slice_values]
+                print(slice_values)
+                events_to_delete = list(range(slice_values[0], slice_values[1] + 1))
+                print(events_to_delete)
+                selecting_events_to_delete = False
+            except ValueError:
+                events_to_delete = []
+                print("Please enter a valid range of events to delete.")
+        else:
+            events_to_delete = selected_events.split(",")
+            try:
+                events_to_delete = [int(num[0:]) for num in events_to_delete]
+                selecting_events_to_delete = False
+            except ValueError:
+                events_to_delete = []
+                print("Please enter a valid list of events to delete.")
 
-        if not events:
-            print("No upcoming events found.")
-            return
+        if not events_to_delete:
+            print("No events to delete.")
+        else:
+            print("The following events will be deleted")
+            for event_number in events_to_delete:
+                print(f"    Event id number: {events_to_work_with[event_number]['id']} "
+                      f"| Name: {events_to_work_with[event_number]['summary']} "
+                      f"| Date: {events_to_work_with[event_number]['start']}")
+            confirmation = input("Would you like to proceed? (y/n): ")
+            confirm_delete(creds, calendar_id, events_to_work_with, events_to_delete, confirmation)
 
-        # Prints the start and name of the next 10 events
-        for event in events:
-            start = event["start"].get("dateTime", event["start"].get("date"))
-            event_id = event["id"]
-            # print(f"({string.ascii_lowercase[events.index(event)]}) Summary: {event["summary"]} | Start: {start}")
-            # service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
+
+def delete_events_in_bulk(creds, calendar_id, events_to_work_with):
+    # try:
+    events_to_delete = list(range(0, len(events_to_work_with)))
+    print(f"Are you sure you want to delete all {len(events_to_work_with)} events that were listed earlier? (y/n): ")
+    confirmation = input(">>> ")
+    confirm_delete(creds, calendar_id, events_to_work_with, events_to_delete, confirmation)
 
 
-    except HttpError as error:
-        print(f"An error occurred: {error}")
+def confirm_delete(creds, calendar_id, events_to_work_with, events_to_delete, confirmation):
+    if confirmation.lower() == "y":
+        try:
+            service = build("calendar", "v3", credentials=creds)
+            with Spinner('Deleting... ') as bar:
+                for event_number in events_to_delete:
+                    service.events().delete(calendarId=calendar_id, eventId=events_to_work_with[event_number]['id']).execute()
+                    bar.next()
+            print("Events deleted. Returning to main menu.")
+        except HttpError as error:
+            print(f"An error occurred: {error}")
+    else:
+        print("Cancelling deletion and returning to main menu.")
