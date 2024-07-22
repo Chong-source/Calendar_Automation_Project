@@ -1,16 +1,16 @@
-import datetime
 import os.path
-import calendar_building_blocks as cbb
-import calendar_details as cd
-import main_functions as mf
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from event_creator import get_and_print_events, create_event, create_rotation_day_events, current_calendar_id
+
+import calendar_building_blocks as cbb
+import calendar_details as cd
 from event_templates import all_day_event
+from main_functions import (
+    get_and_print_events, create_rotation_day_events, current_calendar_id, welcome_message,
+    display_menu, menu_options, double_check_user_choice, work_with_events
+)
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -79,7 +79,8 @@ def main():
             f'Period {i + 1}'] = blocks_of_the_day[cd.rotation_day_names[j]][i]
 
     while run_program:
-        mf.display_menu(mf.menu_options)
+        welcome_message()
+        display_menu(menu_options)
         user_input = input(">>> ")
         if user_input.lower() == "a":
             print(period_block_names)
@@ -92,12 +93,22 @@ def main():
         elif user_input.lower() == "d":
             print(cd.df)
         elif user_input.lower() == "e":
-            decision = mf.double_check_user_choice(cd.df, current_calendar_id)
+            decision = double_check_user_choice(cd.df, current_calendar_id)
             if decision.lower() == "y":
                 for row in cd.df.itertuples(index=False):
                     create_rotation_day_events(all_day_event, creds, row[0], row[0], row[1], current_calendar_id)
             else:
                 print("Cancelling your choice and returning to main menu.")
+        elif user_input.lower() == "f":
+            try:
+                number_of_events = int(input("How many events would you like to get? "))
+                events_to_work_with = get_and_print_events(creds, current_calendar_id, number_of_events)
+                if not events_to_work_with:
+                    print("There are no events to work with. Returning to main menu.")
+                else:
+                    work_with_events(creds, current_calendar_id, number_of_events, events_to_work_with)
+            except ValueError:
+                print("Please enter an integer next time.")
         elif user_input.lower() == "x":
             run_program = False
         else:
