@@ -13,6 +13,7 @@ menu_options = ["(a) View names for each individual block in the schedule.",
                 "(d) View the entire calendar dataframe.",
                 "(e) Create all rotation day events on Google Calendar.",
                 "(f) Get a list of upcoming events to work with from Google Calendar.",
+                "(g) View teacher schedules.",
                 "(x) Exit program."
                 ]
 

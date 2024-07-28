@@ -80,5 +80,14 @@ def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_bl
         blocks_of_the_day[f"{rotation_day_names[i]}"] = period_block_names[i * periods_per_day:block_cutoff]
         block_cutoff += periods_per_day
 
+    # Instead of having the values for each key (rotation day) be a list, join it to be a comma separated string.
+    # By doing this, the school year dataframe can be exploded. This will eventually lead to every row in the dataframe
+    # being a separate event, one for each unique period that a teacher teaches.
+    # The funny thing is, when using the Pandas explode function, a list is needed, but a list can't be added to
+    # the dataframe (at least I keep getting errors when trying to do it the way I have been). The workaround for now
+    # is to cut the periods list into smaller lists for each rotation day, change that list to a string, add that string
+    # to a column, then change that string back to a list, then explode the list... Surely there is a better way.
+    for key in blocks_of_the_day:
+        blocks_of_the_day[key] = ','.join(blocks_of_the_day[key])
     return blocks_of_the_day
 

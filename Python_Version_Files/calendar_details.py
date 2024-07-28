@@ -80,3 +80,5 @@ school_days_in_session = semester_1.union(semester_2)
 # Create base of dataframe containing dates for all school days.
 df = pd.DataFrame(school_days_in_session, columns=['School Days'])
 
+# Create a dataframe containing all of the teachers' schedules.
+schedules = pd.read_csv('teacher_schedules.csv', index_col=0)

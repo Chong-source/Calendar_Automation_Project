@@ -72,11 +72,23 @@ def main():
 
     # Add a new column for each period. Values in the columns will show which sub blocks are in the period for
     # each specific rotation day.
-    for i in range(cd.periods_per_day):
-        cd.df[f'Period {i + 1}'] = cd.df['RotationDays']
-        for j in range(len(cd.rotation_day_names)):
-            cd.df.loc[cd.df['RotationDays'] == cd.rotation_day_names[j],
-            f'Period {i + 1}'] = blocks_of_the_day[cd.rotation_day_names[j]][i]
+    # for i in range(cd.periods_per_day):
+    #     cd.df[f'Period {i + 1}'] = cd.df['RotationDays']
+    #     for j in range(len(cd.rotation_day_names)):
+    #         cd.df.loc[cd.df['RotationDays'] == cd.rotation_day_names[j],
+    #         f'Period {i + 1}'] = blocks_of_the_day[cd.rotation_day_names[j]][i]
+
+    # Changing the commented section above to add just one column of all sub blocks (as a list joined to a string)
+    cd.df['Periods'] = cd.df['RotationDays']
+    cd.df['Periods'] = cd.df['Periods'].astype('object')
+    for i in range(len(cd.rotation_day_names)):
+        cd.df.loc[cd.df['RotationDays'] == cd.rotation_day_names[i], 'Periods'] = blocks_of_the_day[cd.rotation_day_names[i]]
+
+    # Surely there is a better way, but now that string of sub blocks is being changed back into a list.
+    # Once it is a list it can be exploded.
+    cd.df['Periods'] = cd.df['Periods'].str[0:].str.split(',').tolist()
+
+    exploded = cd.df.explode('Periods', ignore_index=False)
 
     while run_program:
         welcome_message()
@@ -92,6 +104,7 @@ def main():
                 print(periods)
         elif user_input.lower() == "d":
             print(cd.df)
+            print(exploded)
         elif user_input.lower() == "e":
             decision = double_check_user_choice(cd.df, current_calendar_id)
             if decision.lower() == "y":
@@ -109,6 +122,17 @@ def main():
                     work_with_events(creds, current_calendar_id, number_of_events, events_to_work_with)
             except ValueError:
                 print("Please enter an integer next time.")
+        elif user_input.lower() == "g":
+            print(cd.schedules)
+        elif user_input.lower() == "h":
+            cd.pd.options.display.max_columns = None
+            cd.pd.options.display.max_rows = None
+            cd.pd.set_option('display.width', 400)
+            merged = exploded.merge(cd.schedules, how='inner', on='Periods')
+            merged = merged[merged.Term != 'S2']
+            merged = merged.sort_values(['Teacher Name', 'School Days']).reset_index(drop=True)
+            print(merged.head(40))
+            print(merged.shape)
         elif user_input.lower() == "x":
             run_program = False
         else:
