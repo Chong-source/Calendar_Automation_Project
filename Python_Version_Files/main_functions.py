@@ -1,11 +1,19 @@
 import datetime
+import os.path
 
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from progress.spinner import Spinner
-from school_specific_info import test_ABCD_calendar_id, ABCD_calendar_id
+
+from school_specific_info import ABCD_calendar_id
 
 current_calendar_id = ABCD_calendar_id
+
+# If modifying these scopes, delete the file token.json.
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
 menu_options = ["(a) View names for each individual block in the schedule.",
                 "(b) View all blocks that are assigned to each rotation day.",
@@ -14,6 +22,7 @@ menu_options = ["(a) View names for each individual block in the schedule.",
                 "(e) Create all rotation day events on Google Calendar.",
                 "(f) Get a list of upcoming events to work with from Google Calendar.",
                 "(g) View teacher schedules.",
+                "(h) View all events to be scheduled",
                 "(x) Exit program."
                 ]
 
@@ -21,6 +30,31 @@ event_menu_options = ["(a) Nothing. Return to the main menu.",
                       "(b) Select events to delete.",
                       "(c) Delete all listed events",
                       ]
+
+
+def handle_authentication():
+    """Shows basic usage of the Google Calendar API.
+    Prints the start and name of the next 10 events on the user's calendar.
+    """
+    creds = None
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists("../Credentials/token.json"):
+        creds = Credentials.from_authorized_user_file("../Credentials/token.json", SCOPES)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "../Credentials/credentials.json", SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open("../Credentials/token.json", "w") as token:
+            token.write(creds.to_json())
+    return creds
 
 
 def welcome_message():
@@ -113,17 +147,30 @@ def create_event(event, creds):
     print('Event created: %s' % (event.get('htmlLink')))
 
 
-def create_rotation_day_events(event, creds, start_date, end_date, summary, calendar_id):
+def create_rotation_day_events(event_type, creds, start_date, end_date, summary, calendar_id):
     # Set the current date and summary name for the event based on the row in the dataframe.
-    event["start"]["date"] = str(start_date)[:10]
-    event["end"]["date"] = str(end_date)[:10]
-    event["summary"] = f"{summary} Day"
-    print(event["start"]["date"], event["summary"])
+    event_type["start"]["date"] = str(start_date)[:10]
+    event_type["end"]["date"] = str(end_date)[:10]
+    event_type["summary"] = f"{summary} Day"
+    print(event_type["start"]["date"], event_type["summary"])
 
     # Calling the Google Calendar API here.
     service = build("calendar", "v3", credentials=creds)
-    event = service.events().insert(calendarId=calendar_id, body=event).execute()
-    print('Event created: %s' % (event.get('htmlLink')))
+    event_type = service.events().insert(calendarId=calendar_id, body=event_type).execute()
+    print('Event created: %s' % (event_type.get('htmlLink')))
+
+
+def create_teacher_class_event(event_type, creds, start_time, end_time, summary, calendar_id):
+    # Set the current date and summary name for the event based on the row in the dataframe.
+    event_type["start"]["dateTime"] = str(start_date)[:10]
+    event_type["end"]["dateTime"] = str(end_date)[:10]
+    event_type["summary"] = f"{summary} Day"
+    print(event_type["start"]["date"], event_type["summary"])
+
+    # Calling the Google Calendar API here.
+    service = build("calendar", "v3", credentials=creds)
+    event_type = service.events().insert(calendarId=calendar_id, body=event_type).execute()
+    print('Event created: %s' % (event_type.get('htmlLink')))
 
 
 def delete_events(creds, calendar_id, events_to_work_with):
