@@ -72,7 +72,7 @@ def apply_rotation_days(datetimeindex, rotation_day_names):
 #     dataframe = dataframe.assign("Period 1" = dataframe[])
 
 
-def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_block_names):
+def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_block_names, to_string=True):
     """Assign each rotation day a set of blocks equal to the number of periods per day."""
     blocks_of_the_day = {}
     block_cutoff = periods_per_day
@@ -80,6 +80,8 @@ def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_bl
         blocks_of_the_day[f"{rotation_day_names[i]}"] = period_block_names[i * periods_per_day:block_cutoff]
         block_cutoff += periods_per_day
 
+    if not to_string:
+        return blocks_of_the_day
     # Instead of having the values for each key (rotation day) be a list, join it to be a comma separated string.
     # By doing this, the school year dataframe can be exploded. This will eventually lead to every row in the dataframe
     # being a separate event, one for each unique period that a teacher teaches.
@@ -87,7 +89,18 @@ def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_bl
     # the dataframe (at least I keep getting errors when trying to do it the way I have been). The workaround for now
     # is to cut the periods list into smaller lists for each rotation day, change that list to a string, add that string
     # to a column, then change that string back to a list, then explode the list... Surely there is a better way.
-    for key in blocks_of_the_day:
-        blocks_of_the_day[key] = ','.join(blocks_of_the_day[key])
-    return blocks_of_the_day
+    else:
+        for key in blocks_of_the_day:
+            blocks_of_the_day[key] = ','.join(blocks_of_the_day[key])
+        return blocks_of_the_day
 
+
+def identify_all_periods_n(periods_per_day, list_blocks_of_the_day):
+    periods_of_the_rotation = {}
+    period_number = 1
+    for periods in range(periods_per_day):
+        periods_of_the_rotation[f"Period {period_number}"] = []
+        for day, period in list_blocks_of_the_day.items():
+            periods_of_the_rotation[f"Period {period_number}"].append(period[periods])
+        period_number += 1
+    return periods_of_the_rotation

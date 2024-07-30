@@ -54,7 +54,7 @@ def main():
             cd.pd.options.display.max_rows = None
             cd.pd.set_option('display.width', 400)
 
-            print(cd.merged.head(40))
+            print(cd.merged.head(10))
             print(cd.merged.shape)
         elif user_input.lower() == "i":
             print(cd.merged.at[0, "School Days"])

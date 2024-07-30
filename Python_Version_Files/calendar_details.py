@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import calendar_building_blocks as cbb
 
 from datetime import date, time, datetime, timedelta
@@ -137,3 +138,22 @@ merged = exploded.merge(schedules, how='inner', on='Periods')
 # Sort by teacher, then day. When pushing to Google Calendar this will allow events to be created for one
 # teacher before moving on to the next.
 merged = merged.sort_values(['Teacher Name', 'School Days']).reset_index(drop=True)
+merged.insert(loc=3, column='StartTime', value=merged['Periods'])
+merged.insert(loc=4, column='EndTime', value=merged['Periods'])
+
+
+# Assign each rotation day a set of blocks equal to the number of periods per day, this time in list format.
+list_blocks_of_the_day = cbb.assign_block_names_to_periods(periods_per_day, rotation_day_names, period_block_names,
+                                                           False)
+
+# Assign each period a set of blocks that can happen during that period.
+periods_of_the_rotation = cbb.identify_all_periods_n(periods_per_day, list_blocks_of_the_day)
+print(list_blocks_of_the_day)
+print(periods_of_the_rotation)
+
+period_to_start_time = [
+    (merged['StartTime'] == periods_of_the_rotation[f"Period {1}"][0])
+]
+start_times = [time_schedule["Period 1"][0].time()]
+
+merged["StartTime"] = np.select(period_to_start_time, start_times, default=np.nan)
