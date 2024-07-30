@@ -161,12 +161,14 @@ def create_rotation_day_events(event_type, creds, start_date, end_date, summary,
     print('Event created: %s' % (event_type.get('htmlLink')))
 
 
-def create_teacher_class_event(event_type, creds, start_time, end_time, summary, calendar_id):
+def create_teacher_class_event(event_type, creds, period_date, start_time, end_time, summary, period, calendar_id):
     # Set the current date and summary name for the event based on the row in the dataframe.
-    event_type["start"]["dateTime"] = str(start_date)[:10]
-    event_type["end"]["dateTime"] = str(end_date)[:10]
-    event_type["summary"] = f"{summary} Day"
-    print(event_type["start"]["date"], event_type["summary"])
+    # 'dateTime': '2015-05-28T17:00:00-07:00',
+    event_type["start"]["dateTime"] = f"{str(period_date)[:10]}T{start_time}+07:00"
+    event_type["end"]["dateTime"] = f"{str(period_date)[:10]}T{end_time}+07:00"
+    event_type["summary"] = f"{summary} ({period})"
+    print(event_type["start"]["dateTime"], event_type["summary"], calendar_id)
+    print(event_type["end"]["dateTime"], event_type["summary"], calendar_id)
 
     # Calling the Google Calendar API here.
     service = build("calendar", "v3", credentials=creds)

@@ -1,9 +1,9 @@
 import calendar_building_blocks as cbb
 import calendar_details as cd
 from calendar_details import period_block_names, blocks_of_the_day, time_schedule
-from event_templates import all_day_event
+from event_templates import all_day_event, timed_event
 from main_functions import (
-    get_and_print_events, create_rotation_day_events, current_calendar_id, welcome_message,
+    get_and_print_events, create_rotation_day_events, create_teacher_class_event, current_calendar_id, welcome_message,
     display_menu, menu_options, double_check_user_choice, work_with_events, handle_authentication
 )
 
@@ -54,8 +54,18 @@ def main():
             cd.pd.options.display.max_rows = None
             cd.pd.set_option('display.width', 400)
 
-            print(cd.merged.head(30))
+            print(cd.merged.head(10))
             print(cd.merged.shape)
+
+            # All events in the dataframe can be created on Google Calendar if the following code runs.
+            action = input("What would you like to do with these events? (p)ush to Google Calendar / (g)o back: ")
+            if action.lower() == "p":
+                event_creation_count = 0
+                for period in cd.merged.itertuples(index=False):
+                    create_teacher_class_event(timed_event, creds, period[0], period[4], period[5], period[7], period[3], period[10])
+                    event_creation_count += 1
+                    print(f"Event number: {event_creation_count}")
+                print(f"Total number of events created: {event_creation_count}")
         elif user_input.lower() == "i":
             print(cd.merged.at[0, "School Days"])
             print(type(cd.merged.at[0, "School Days"]))
@@ -66,9 +76,21 @@ def main():
             print(tuesday_df)
         elif user_input.lower() == "j":
             chosen_calendar = input("Which teacher's calendar would you like to view (enter their calendar id): ")
-            single_teacher = cd.merged[cd.merged.CalendarID == chosen_calendar]
-            print(single_teacher)
-
+            single_teacher = cd.merged[cd.merged.CalendarID == chosen_calendar].reset_index(drop=True)
+            # The next 3 lines regarding Pandas options assist with display in the terminal only.
+            cd.pd.options.display.max_columns = None
+            cd.pd.options.display.max_rows = None
+            cd.pd.set_option('display.width', 400)
+            single_teacher = single_teacher[:10]
+            print(single_teacher[:10])
+            action = input("What would you like to do with these events? (p)ush to Google Calendar / (g)o back: ")
+            if action.lower() == "p":
+                event_creation_count = 0
+                for period in single_teacher.itertuples(index=False):
+                    create_teacher_class_event(timed_event, creds, period[0], period[4], period[5], period[7], period[3], period[10])
+                    event_creation_count += 1
+                    print(f"Event number: {event_creation_count}")
+                print(f"Total number of events created: {event_creation_count}")
         elif user_input.lower() == "x":
             run_program = False
             break

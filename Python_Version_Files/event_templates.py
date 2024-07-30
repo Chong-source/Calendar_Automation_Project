@@ -31,7 +31,7 @@ all_day_event = {
 timed_event = {
     'summary': 'Calendar API Test',
     'location': 'Chiang Mai',
-    'description': '',
+    'description': '~class~',
     'start': {
         'dateTime': '2015-05-28T09:00:00+07:00',
         'timeZone': 'Asia/Bangkok',

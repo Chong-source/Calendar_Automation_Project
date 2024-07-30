@@ -74,9 +74,10 @@ s2_quarter4 = pd.date_range(quarter4_start_date, quarter4_end_date, freq=calenda
 
 # Create datetimeindexes for each semester and then combine them for the full year.
 # To check for mismatches in size --> print(semester_1.size, semester_2.size, school_year_calendar.size)
+# Temporarily removing semester 2 so that only semester 1 dates can be used.
 semester_1 = s1_quarter1.union(s1_quarter2)
-semester_2 = s2_quarter3.union(s2_quarter4)
-school_days_in_session = semester_1.union(semester_2)
+# semester_2 = s2_quarter3.union(s2_quarter4)
+school_days_in_session = semester_1  #.union(semester_2)
 
 # Create base of dataframe containing dates for all school days.
 df = pd.DataFrame(school_days_in_session, columns=['SchoolDays'])
@@ -102,9 +103,10 @@ time_schedule = cbb.create_period_times(periods_per_day, start_of_period,
                                         end_of_school_day)
 
 # Apply rotating day pattern to both semesters, then combine to make a year-long list.
+# Temporarily changing it to only be dates for the 1st semester of school.
 s1_rotation_days = cbb.apply_rotation_days(semester_1, rotation_day_names)
-s2_rotation_days = cbb.apply_rotation_days(semester_2, rotation_day_names)
-school_year_rotation_days = s1_rotation_days + s2_rotation_days
+# s2_rotation_days = cbb.apply_rotation_days(semester_2, rotation_day_names)
+school_year_rotation_days = s1_rotation_days  # + s2_rotation_days
 
 # Add a column for RotationDays to the school_calendar_info dataframe.
 df['RotationDays'] = school_year_rotation_days
@@ -152,8 +154,8 @@ list_blocks_of_the_day = cbb.assign_block_names_to_periods(periods_per_day, rota
 
 # Assign each period a set of blocks that can happen during that period.
 periods_of_the_rotation = cbb.identify_all_periods_n(periods_per_day, list_blocks_of_the_day)
-print(list_blocks_of_the_day)
-print(periods_of_the_rotation)
+# print(list_blocks_of_the_day)
+# print(periods_of_the_rotation)
 
 # Set the start and end times for all periods on all days except Tuesdays.
 # Tuesdays are skipped because this unique school schedule alters the period times every Tuesday.
