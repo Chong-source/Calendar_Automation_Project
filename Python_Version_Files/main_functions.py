@@ -23,6 +23,7 @@ menu_options = ["(a) View names for each individual block in the schedule.",
                 "(f) Get a list of upcoming events to work with from Google Calendar.",
                 "(g) View teacher schedules.",
                 "(h) View all events to be scheduled",
+                "(j) View a single teacher's schedule.",
                 "(x) Exit program."
                 ]
 

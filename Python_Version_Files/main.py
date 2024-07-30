@@ -54,7 +54,7 @@ def main():
             cd.pd.options.display.max_rows = None
             cd.pd.set_option('display.width', 400)
 
-            print(cd.merged.head(10))
+            print(cd.merged.head(30))
             print(cd.merged.shape)
         elif user_input.lower() == "i":
             print(cd.merged.at[0, "School Days"])
@@ -62,6 +62,8 @@ def main():
             print(cd.merged.at[0, "School Days"].day_name())
             print(cd.merged.at[0, "School Days"].day_name() == "Tuesday")
             print(cd.merged.at[1, "School Days"].day_name() == "Tuesday")
+            tuesday_df = cd.merged.loc[cd.merged["School Days"].day_name() == "Tuesday"]
+            print(tuesday_df)
         elif user_input.lower() == "j":
             chosen_calendar = input("Which teacher's calendar would you like to view (enter their calendar id): ")
             single_teacher = cd.merged[cd.merged.CalendarID == chosen_calendar]

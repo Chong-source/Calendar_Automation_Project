@@ -19,11 +19,11 @@ rotation_day_names = "ABCD"
 # Arithmetic is not possible with times only. Need to recheck this.
 start_of_period = datetime(year=2024, month=7, day=1, hour=7, minute=45)
 end_of_school_day = datetime(year=2024, month=7, day=1, hour=14, minute=35)
-length_of_period = timedelta(minutes=+50)  # was 55
+length_of_period = timedelta(minutes=+55)  # was 55 for normal / 50 for tuesdays
 travel_time = timedelta(minutes=+5)
 number_of_breaks = 1  # Not including lunch
 break_after_x_periods = 2
-length_of_break = timedelta(minutes=45)  # was 15
+length_of_break = timedelta(minutes=15)  # was 15 for normal / 45 for tuesdays
 lunch_after_x_periods = 4
 length_of_lunch = timedelta(minutes=35)
 
@@ -79,7 +79,7 @@ semester_2 = s2_quarter3.union(s2_quarter4)
 school_days_in_session = semester_1.union(semester_2)
 
 # Create base of dataframe containing dates for all school days.
-df = pd.DataFrame(school_days_in_session, columns=['School Days'])
+df = pd.DataFrame(school_days_in_session, columns=['SchoolDays'])
 
 # Create a dataframe containing all of the teachers' schedules.
 schedules = pd.read_csv('teacher_schedules.csv', index_col=0)
@@ -137,9 +137,13 @@ merged = exploded.merge(schedules, how='inner', on='Periods')
 # merged = merged[merged.Term != 'S2']
 # Sort by teacher, then day. When pushing to Google Calendar this will allow events to be created for one
 # teacher before moving on to the next.
-merged = merged.sort_values(['Teacher Name', 'School Days']).reset_index(drop=True)
-merged.insert(loc=3, column='StartTime', value=merged['Periods'])
-merged.insert(loc=4, column='EndTime', value=merged['Periods'])
+merged = merged.sort_values(['Teacher Name', 'SchoolDays']).reset_index(drop=True)
+
+# Create new columns: one for weekday names, one for Startimes, one for Endtimes
+weekdays = merged.SchoolDays.dt.day_name()
+merged.insert(loc=1, column='WeekDay', value=weekdays)
+merged.insert(loc=4, column='StartTime', value=merged['Periods'])
+merged.insert(loc=5, column='EndTime', value=merged['Periods'])
 
 
 # Assign each rotation day a set of blocks equal to the number of periods per day, this time in list format.
@@ -151,9 +155,22 @@ periods_of_the_rotation = cbb.identify_all_periods_n(periods_per_day, list_block
 print(list_blocks_of_the_day)
 print(periods_of_the_rotation)
 
-period_to_start_time = [
-    (merged['StartTime'] == periods_of_the_rotation[f"Period {1}"][0])
-]
-start_times = [time_schedule["Period 1"][0].time()]
+# Set the start and end times for all periods on all days except Tuesdays.
+# Tuesdays are skipped because this unique school schedule alters the period times every Tuesday.
+cbb.set_start_times(merged, periods_of_the_rotation, time_schedule)
+cbb.set_end_times(merged, periods_of_the_rotation, time_schedule)
 
-merged["StartTime"] = np.select(period_to_start_time, start_times, default=np.nan)
+# Make time changes necessary for Tuesday schedule.
+length_of_period = timedelta(minutes=+50)  # was 55 for normal / 50 for tuesdays
+length_of_break = timedelta(minutes=45)  # was 15 for normal / 45 for tuesdays
+
+# Create the Tuesday timetable that holds start and end information for all events in a school day.
+tuesday_time_schedule = cbb.create_period_times(periods_per_day, start_of_period,
+                                                length_of_period, travel_time,
+                                                break_after_x_periods, length_of_break,
+                                                lunch_after_x_periods, length_of_lunch,
+                                                end_of_school_day)
+
+# Now set all the start and end times for all periods on all Tuesdays.
+cbb.set_tuesday_start_times(merged, periods_of_the_rotation, tuesday_time_schedule)
+cbb.set_tuesday_end_times(merged, periods_of_the_rotation, tuesday_time_schedule)
