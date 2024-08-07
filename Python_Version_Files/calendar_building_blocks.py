@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def create_period_times(periods_per_day, start_of_period, length_of_period, travel_time,
                         break_after_x_periods, length_of_break,
                         lunch_after_x_periods, length_of_lunch,
@@ -72,7 +75,7 @@ def apply_rotation_days(datetimeindex, rotation_day_names):
 #     dataframe = dataframe.assign("Period 1" = dataframe[])
 
 
-def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_block_names):
+def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_block_names, to_string=True):
     """Assign each rotation day a set of blocks equal to the number of periods per day."""
     blocks_of_the_day = {}
     block_cutoff = periods_per_day
@@ -80,5 +83,191 @@ def assign_block_names_to_periods(periods_per_day, rotation_day_names, period_bl
         blocks_of_the_day[f"{rotation_day_names[i]}"] = period_block_names[i * periods_per_day:block_cutoff]
         block_cutoff += periods_per_day
 
-    return blocks_of_the_day
+    if not to_string:
+        return blocks_of_the_day
+    # Instead of having the values for each key (rotation day) be a list, join it to be a comma separated string.
+    # By doing this, the school year dataframe can be exploded. This will eventually lead to every row in the dataframe
+    # being a separate event, one for each unique period that a teacher teaches.
+    # The funny thing is, when using the Pandas explode function, a list is needed, but a list can't be added to
+    # the dataframe (at least I keep getting errors when trying to do it the way I have been). The workaround for now
+    # is to cut the periods list into smaller lists for each rotation day, change that list to a string, add that string
+    # to a column, then change that string back to a list, then explode the list... Surely there is a better way.
+    else:
+        for key in blocks_of_the_day:
+            blocks_of_the_day[key] = ','.join(blocks_of_the_day[key])
+        return blocks_of_the_day
 
+
+def identify_all_periods_n(periods_per_day, list_blocks_of_the_day):
+    periods_of_the_rotation = {}
+    period_number = 1
+    for periods in range(periods_per_day):
+        periods_of_the_rotation[f"Period {period_number}"] = []
+        for day, period in list_blocks_of_the_day.items():
+            periods_of_the_rotation[f"Period {period_number}"].append(period[periods])
+        period_number += 1
+    return periods_of_the_rotation
+
+
+def set_start_times(merged, periods_of_the_rotation, time_schedule):
+    period_to_start_time = [
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 1"][0]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 1"][1]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 1"][2]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 1"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 2"][0]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 2"][1]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 2"][2]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 2"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 3"][0]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 3"][1]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 3"][2]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 3"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 4"][0]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 4"][1]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 4"][2]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 4"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 5"][0]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 5"][1]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 5"][2]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 5"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 6"][0]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 6"][1]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 6"][2]) |
+         (merged['StartTime'] == periods_of_the_rotation["Period 6"][3]))),
+
+    ]
+    start_times = [time_schedule["Period 1"][0].time(), time_schedule["Period 2"][0].time(),
+                   time_schedule["Period 3"][0].time(), time_schedule["Period 4"][0].time(),
+                   time_schedule["Period 5"][0].time(), time_schedule["Period 6"][0].time(), ]
+
+    merged["StartTime"] = np.select(period_to_start_time, start_times, default=merged["StartTime"])
+
+
+def set_end_times(merged, periods_of_the_rotation, time_schedule):
+    period_to_end_time = [
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 1"][0]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 1"][1]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 1"][2]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 1"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 2"][0]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 2"][1]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 2"][2]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 2"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 3"][0]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 3"][1]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 3"][2]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 3"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 4"][0]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 4"][1]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 4"][2]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 4"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 5"][0]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 5"][1]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 5"][2]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 5"][3]))),
+        ((merged['WeekDay'] != 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 6"][0]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 6"][1]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 6"][2]) |
+         (merged['EndTime'] == periods_of_the_rotation["Period 6"][3]))),
+
+    ]
+    end_times = [time_schedule["Period 1"][1].time(), time_schedule["Period 2"][1].time(),
+                 time_schedule["Period 3"][1].time(), time_schedule["Period 4"][1].time(),
+                 time_schedule["Period 5"][1].time(), time_schedule["Period 6"][1].time(), ]
+
+    merged["EndTime"] = np.select(period_to_end_time, end_times, default=merged["EndTime"])
+
+
+def set_tuesday_start_times(merged, periods_of_the_rotation, time_schedule):
+    period_to_start_time = [
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 1"][0]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 1"][1]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 1"][2]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 1"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 2"][0]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 2"][1]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 2"][2]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 2"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 3"][0]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 3"][1]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 3"][2]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 3"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 4"][0]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 4"][1]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 4"][2]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 4"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 5"][0]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 5"][1]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 5"][2]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 5"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['StartTime'] == periods_of_the_rotation["Period 6"][0]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 6"][1]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 6"][2]) |
+          (merged['StartTime'] == periods_of_the_rotation["Period 6"][3]))),
+
+    ]
+    tuesday_start_times = [time_schedule["Period 1"][0].time(), time_schedule["Period 2"][0].time(),
+                   time_schedule["Period 3"][0].time(), time_schedule["Period 4"][0].time(),
+                   time_schedule["Period 5"][0].time(), time_schedule["Period 6"][0].time(), ]
+
+    merged["StartTime"] = np.select(period_to_start_time, tuesday_start_times, default=merged["StartTime"])
+
+
+def set_tuesday_end_times(merged, periods_of_the_rotation, time_schedule):
+    period_to_end_time = [
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 1"][0]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 1"][1]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 1"][2]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 1"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 2"][0]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 2"][1]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 2"][2]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 2"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 3"][0]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 3"][1]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 3"][2]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 3"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 4"][0]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 4"][1]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 4"][2]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 4"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 5"][0]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 5"][1]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 5"][2]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 5"][3]))),
+        ((merged['WeekDay'] == 'Tuesday') &
+         ((merged['EndTime'] == periods_of_the_rotation["Period 6"][0]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 6"][1]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 6"][2]) |
+          (merged['EndTime'] == periods_of_the_rotation["Period 6"][3]))),
+
+    ]
+    tuesday_end_times = [time_schedule["Period 1"][1].time(), time_schedule["Period 2"][1].time(),
+                 time_schedule["Period 3"][1].time(), time_schedule["Period 4"][1].time(),
+                 time_schedule["Period 5"][1].time(), time_schedule["Period 6"][1].time(), ]
+
+    merged["EndTime"] = np.select(period_to_end_time, tuesday_end_times, default=merged["EndTime"])
