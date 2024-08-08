@@ -1,5 +1,5 @@
-"""asdf"""
+"""Chong's learning notes with Pandas
+Source: https://pandas.pydata.org/docs/user_guide/10min.html"""
 
-def add_two_numbers(a: int, b: int):
-    """adds two numbers together"""
-    return a + b
+import pandas as pd
+import numpy as np

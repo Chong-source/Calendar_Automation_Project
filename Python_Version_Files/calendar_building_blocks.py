@@ -1,4 +1,4 @@
-#  Change by Chong
+
 def create_period_times(periods_per_day, start_of_period, length_of_period, travel_time,
                         break_after_x_periods, length_of_break,
                         lunch_after_x_periods, length_of_lunch,
